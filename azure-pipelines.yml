@@ -1,0 +1,46 @@
+stages:
+- stage: Build
+  displayName: 'Build Stage'
+  jobs:
+  - job: Build
+    displayName: 'Build Azure Function'
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '20.x'
+    - script: |
+        npm install
+      workingDirectory: $(System.DefaultWorkingDirectory)/AzureFunctionLab
+      displayName: 'Install dependencies'
+
+- stage: Test
+  displayName: 'Test Stage'
+  dependsOn: Build
+  jobs:
+  - job: Test
+    displayName: 'Run Unit Tests'
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - script: |
+        npm test
+      workingDirectory: $(System.DefaultWorkingDirectory)/AzureFunctionLab
+      displayName: 'Run Tests'
+
+- stage: Deploy
+  displayName: 'Deploy to Azure'
+  dependsOn: Test
+  jobs:
+  - job: Deploy
+    displayName: 'Deploy Function to Azure'
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: AzureFunctionApp@1
+      inputs:
+        azureSubscription: 'AzureServiceConnection' 
+        appName: 'junyanzhangfunction'                
+        package: '$(Build.ArtifactStagingDirectory)/**/*.zip'
+
